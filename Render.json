@@ -1,0 +1,10 @@
+{
+  "name": "jogo-backend",
+  "region": "sao-paulo",
+  "runtime": "dotnet",
+  "buildCommand": "dotnet publish -c Release -o out",
+  "startCommand": "dotnet out/JogoBackend.dll",
+  "envVars": {
+    "ASPNETCORE_ENVIRONMENT": "Production"
+  }
+}
