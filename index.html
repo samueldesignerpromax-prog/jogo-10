@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Adivinhação</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .resultado {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .online { background: #10b981; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h2>🎮 1. Criar Jogador</h2>
+            <input type="text" id="nome" placeholder="Digite seu nome">
+            <button onclick="criarJogador()">Criar Jogador</button>
+            <div id="resultadoJogador" class="resultado"></div>
+        </div>
+
+        <div class="card">
+            <h2>🎲 2. Iniciar Partida</h2>
+            <input type="text" id="jogadorId" placeholder="ID do Jogador">
+            <button onclick="iniciarPartida()">Iniciar Partida</button>
+            <div id="resultadoPartida" class="resultado"></div>
+        </div>
+
+        <div class="card">
+            <h2>🎯 3. Fazer Jogada</h2>
+            <input type="text" id="partidaId" placeholder="ID da Partida">
+            <input type="number" id="palpite" placeholder="Palpite (1-100)" min="1" max="100">
+            <button onclick="fazerJogada()">Jogar!</button>
+            <div id="resultadoJogada" class="resultado"></div>
+        </div>
+
+        <div class="card">
+            <h2>🏆 4. Ranking</h2>
+            <button onclick="verRanking()">Atualizar Ranking</button>
+            <div id="resultadoRanking" class="resultado"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://jogo-10.onrender.com';
+
+        async function criarJogador() {
+            const nome = document.getElementById('nome').value;
+            if (!nome) {
+                alert('Digite um nome!');
+                return;
+            }
+            try {
+                const resposta = await fetch(`${API_URL}/api/Jogo/criar-jogador`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nome)
+                });
+                const dados = await resposta.json();
+                document.getElementById('resultadoJogador').innerHTML = JSON.stringify(dados, null, 2);
+                if (dados.jogador) {
+                    document.getElementById('jogadorId').value = dados.jogador.id;
+                }
+            } catch (erro) {
+                document.getElementById('resultadoJogador').innerHTML = `Erro: ${erro.message}`;
+            }
+        }
+
+        async function iniciarPartida() {
+            const jogadorId = document.getElementById('jogadorId').value;
+            if (!jogadorId) {
+                alert('Crie um jogador primeiro!');
+                return;
+            }
+            try {
+                const resposta = await fetch(`${API_URL}/api/Jogo/iniciar-partida/${jogadorId}`, {
+                    method: 'POST'
+                });
+                const dados = await resposta.json();
+                document.getElementById('resultadoPartida').innerHTML = JSON.stringify(dados, null, 2);
+                if (dados.partida) {
+                    document.getElementById('partidaId').value = dados.partida.id;
+                }
+            } catch (erro) {
+                document.getElementById('resultadoPartida').innerHTML = `Erro: ${erro.message}`;
+            }
+        }
+
+        async function fazerJogada() {
+            const partidaId = document.getElementById('partidaId').value;
+            const palpite = parseInt(document.getElementById('palpite').value);
+            
+            if (!partidaId) {
+                alert('Inicie uma partida primeiro!');
+                return;
+            }
+            if (!palpite || palpite < 1 || palpite > 100) {
+                alert('Digite um palpite entre 1 e 100!');
+                return;
+            }
+            
+            try {
+                const resposta = await fetch(`${API_URL}/api/Jogo/jogar/${partidaId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(palpite)
+                });
+                const dados = await resposta.json();
+                document.getElementById('resultadoJogada').innerHTML = JSON.stringify(dados, null, 2);
+                
+                if (dados.partida?.finalizada) {
+                    alert(`🎉 Parabéns! Você finalizou a partida com ${dados.partida.pontuacaoFinal} pontos! 🎉`);
+                    verRanking();
+                }
+            } catch (erro) {
+                document.getElementById('resultadoJogada').innerHTML = `Erro: ${erro.message}`;
+            }
+        }
+
+        async function verRanking() {
+            try {
+                const resposta = await fetch(`${API_URL}/api/Jogo/ranking`);
+                const dados = await resposta.json();
+                document.getElementById('resultadoRanking').innerHTML = JSON.stringify(dados, null, 2);
+            } catch (erro) {
+                document.getElementById('resultadoRanking').innerHTML = `Erro: ${erro.message}`;
+            }
+        }
+
+        // Verificar status da API ao carregar
+        async function verificarStatus() {
+            try {
+                const resposta = await fetch(`${API_URL}/health`);
+                const dados = await resposta.json();
+                console.log('API Status:', dados);
+            } catch (erro) {
+                console.error('API offline:', erro);
+            }
+        }
+        
+        verificarStatus();
+    </script>
+</body>
+</html>
